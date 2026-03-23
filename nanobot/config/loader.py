@@ -11,6 +11,14 @@ from nanobot.config.schema import Config
 # Global variable to store current config path (for multi-instance support)
 _current_config_path: Path | None = None
 
+# Holds the last config load error, if any, so callers (e.g. `status`) can surface it.
+_last_load_error: str | None = None
+
+
+def get_last_load_error() -> str | None:
+    """Return the error message from the last failed config load, or None if load succeeded."""
+    return _last_load_error
+
 
 def set_config_path(path: Path) -> None:
     """Set the current config path (used to derive data directory)."""
@@ -35,6 +43,9 @@ def load_config(config_path: Path | None = None) -> Config:
     Returns:
         Loaded configuration object.
     """
+    global _last_load_error
+    _last_load_error = None
+
     path = config_path or get_config_path()
 
     if path.exists():
@@ -44,6 +55,7 @@ def load_config(config_path: Path | None = None) -> Config:
             data = _migrate_config(data)
             return Config.model_validate(data)
         except (json.JSONDecodeError, ValueError, pydantic.ValidationError) as e:
+            _last_load_error = str(e)
             logger.warning(f"Failed to load config from {path}: {e}")
             logger.warning("Using default configuration.")
 
