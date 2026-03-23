@@ -301,6 +301,29 @@ def test_openai_codex_strip_prefix_supports_hyphen_and_underscore():
     assert _strip_model_prefix("openai_codex/gpt-5.1-codex") == "gpt-5.1-codex"
 
 
+def test_make_provider_shows_specific_provider_name_when_api_key_missing():
+    """When a provider is explicitly forced but has no API key, show the provider name in the error."""
+    config = Config.model_validate(
+        {
+            "agents": {"defaults": {"provider": "dashscope", "model": "qwen3-max"}},
+            # No providers.dashscope.apiKey → api_key = ""
+        }
+    )
+
+    captured = []
+    with patch("nanobot.cli.commands.console") as mock_console:
+        mock_console.print.side_effect = lambda *a, **kw: captured.append(str(a[0]) if a else "")
+        try:
+            _make_provider(config)
+        except SystemExit:
+            pass
+        except Exception:
+            pass
+    output = "\n".join(captured)
+    assert "dashscope" in output
+    assert "apiKey" in output
+
+
 def test_make_provider_passes_extra_headers_to_custom_provider():
     config = Config.model_validate(
         {
@@ -475,6 +498,35 @@ def test_agent_hints_about_deprecated_memory_window(mock_agent_runtime, tmp_path
     assert result.exit_code == 0
     assert "memoryWindow" in result.stdout
     assert "no longer used" in result.stdout
+
+
+def test_status_shows_parse_error_when_config_has_invalid_json(tmp_path: Path) -> None:
+    """When the config file has a JSON syntax error, status should show ✗ (parse error)."""
+    config_file = tmp_path / "config.json"
+    # Trailing comma makes this invalid JSON
+    config_file.write_text('{"providers": {"dashscope": {"apiKey": "sk-test"}},}')
+
+    with patch("nanobot.config.loader.get_config_path", return_value=config_file):
+        result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 0
+    assert "parse error" in result.stdout
+    assert "Hint" in result.stdout
+
+
+def test_status_shows_checkmark_when_config_is_valid(tmp_path: Path) -> None:
+    """When config is valid, status should show ✓ for config."""
+    config_file = tmp_path / "config.json"
+    config_file.write_text(
+        '{"providers": {"dashscope": {"apiKey": "sk-test"}}, "agents": {"defaults": {"model": "qwen3-max", "provider": "dashscope"}}}'
+    )
+
+    with patch("nanobot.config.loader.get_config_path", return_value=config_file):
+        result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 0
+    assert "parse error" not in result.stdout
+    assert "DashScope" in result.stdout
 
 
 def test_gateway_uses_workspace_from_config_by_default(monkeypatch, tmp_path: Path) -> None:

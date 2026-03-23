@@ -446,8 +446,13 @@ def _make_provider(config: Config):
         from nanobot.providers.registry import find_by_name
         spec = find_by_name(provider_name)
         if not model.startswith("bedrock/") and not (p and p.api_key) and not (spec and (spec.is_oauth or spec.is_local)):
-            console.print("[red]Error: No API key configured.[/red]")
-            console.print("Set one in ~/.nanobot/config.json under providers section")
+            if provider_name:
+                console.print(f"[red]Error: No API key configured for provider '{provider_name}'.[/red]")
+                console.print(f"Set it in ~/.nanobot/config.json:")
+                console.print(f'  {{"providers": {{"{provider_name}": {{"apiKey": "your-api-key"}}}}}}')
+            else:
+                console.print("[red]Error: No API key configured.[/red]")
+                console.print("Set one in ~/.nanobot/config.json under providers section")
             raise typer.Exit(1)
         provider = LiteLLMProvider(
             api_key=p.api_key if p else None,
@@ -1079,15 +1084,24 @@ def plugins_list():
 @app.command()
 def status():
     """Show nanobot status."""
-    from nanobot.config.loader import get_config_path, load_config
+    from nanobot.config.loader import get_config_path, get_last_load_error, load_config
 
     config_path = get_config_path()
     config = load_config()
+    load_error = get_last_load_error()
     workspace = config.workspace_path
 
     console.print(f"{__logo__} nanobot Status\n")
 
-    console.print(f"Config: {config_path} {'[green]✓[/green]' if config_path.exists() else '[red]✗[/red]'}")
+    if config_path.exists():
+        if load_error:
+            console.print(f"Config: {config_path} [red]✗ (parse error)[/red]")
+            console.print(f"  [red]Error:[/red] {load_error}")
+            console.print("  [yellow]Hint:[/yellow] Check your config file for syntax or validation errors.")
+        else:
+            console.print(f"Config: {config_path} [green]✓[/green]")
+    else:
+        console.print(f"Config: {config_path} [red]✗[/red]")
     console.print(f"Workspace: {workspace} {'[green]✓[/green]' if workspace.exists() else '[red]✗[/red]'}")
 
     if config_path.exists():
