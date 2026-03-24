@@ -39,6 +39,7 @@ class AgentDefaults(Base):
     temperature: float = 0.1
     max_tool_iterations: int = 40
     reasoning_effort: str | None = None  # low / medium / high - enables LLM thinking mode
+    input_guard_mode: Literal["off", "light", "guide", "strict"] = "guide"
 
 
 class AgentsConfig(Base):

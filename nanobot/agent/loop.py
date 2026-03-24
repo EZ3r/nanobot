@@ -16,6 +16,7 @@ from loguru import logger
 
 from nanobot import __version__
 from nanobot.agent.context import ContextBuilder
+from nanobot.agent.input_guard import InputGuardMode, preprocess_input
 from nanobot.agent.memory import MemoryConsolidator
 from nanobot.agent.subagent import SubagentManager
 from nanobot.agent.tools.cron import CronTool
@@ -67,6 +68,7 @@ class AgentLoop:
         session_manager: SessionManager | None = None,
         mcp_servers: dict | None = None,
         channels_config: ChannelsConfig | None = None,
+        input_guard_mode: InputGuardMode = "guide",
     ):
         from nanobot.config.schema import ExecToolConfig, WebSearchConfig
 
@@ -84,6 +86,7 @@ class AgentLoop:
         self.restrict_to_workspace = restrict_to_workspace
         self._start_time = time.time()
         self._last_usage: dict[str, int] = {}
+        self.input_guard_mode = input_guard_mode
 
         self.context = ContextBuilder(workspace)
         self.sessions = session_manager or SessionManager(workspace)
@@ -462,6 +465,16 @@ class AgentLoop:
                 content="\n".join(lines),
                 metadata={"render_as": "text"},
             )
+
+        guard_result = preprocess_input(msg.content, mode=self.input_guard_mode)
+        if guard_result.clarification_message:
+            return OutboundMessage(
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                content=guard_result.clarification_message,
+                metadata=msg.metadata or {},
+            )
+
         await self.memory_consolidator.maybe_consolidate_by_tokens(session)
 
         self._set_tool_context(msg.channel, msg.chat_id, msg.metadata.get("message_id"))
@@ -472,7 +485,7 @@ class AgentLoop:
         history = session.get_history(max_messages=0)
         initial_messages = self.context.build_messages(
             history=history,
-            current_message=msg.content,
+            current_message=guard_result.content,
             media=msg.media if msg.media else None,
             channel=msg.channel, chat_id=msg.chat_id,
         )

@@ -214,11 +214,19 @@ Configure these **two parts** in your config (other options have defaults).
   "agents": {
     "defaults": {
       "model": "anthropic/claude-opus-4-5",
-      "provider": "openrouter"
+      "provider": "openrouter",
+      "inputGuardMode": "guide"
     }
   }
 }
 ```
+
+`inputGuardMode` controls nanobot's lightweight local input handling before a model call:
+
+- `off`: send raw user input as-is
+- `light`: only compress obvious whitespace / punctuation noise
+- `guide`: compress input and locally ask for a clearer resend when the request is obviously vague
+- `strict`: same as `guide`, but with a stricter ambiguity check
 
 **3. Chat**
 
