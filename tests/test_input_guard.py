@@ -42,6 +42,24 @@ def test_preprocess_input_returns_local_clarification_for_vague_request() -> Non
     assert "Goal | Input/Context | Expected output" in result.clarification_message
 
 
+def test_preprocess_input_strict_keeps_detailed_chinese_request() -> None:
+    result = preprocess_input(
+        "帮我查询一下今天的天气，哦对我在桂林市灵川县三街镇，顺便也查一下明天的天气吧",
+        mode="strict",
+    )
+
+    assert result.clarification_message is None
+
+
+def test_preprocess_input_strict_keeps_structured_multistep_request() -> None:
+    result = preprocess_input(
+        "我需要你帮我做以下的事情：1:打开A文件夹；2.选中其中的a,b文件；3. 将他们剪切; 4.退出A文件夹；5. 打开B文件夹; 6.粘贴a,b文件",
+        mode="strict",
+    )
+
+    assert result.clarification_message is None
+
+
 @pytest.mark.asyncio
 async def test_process_message_short_circuits_on_local_clarification(tmp_path: Path) -> None:
     loop = _make_loop(tmp_path, mode="guide")
