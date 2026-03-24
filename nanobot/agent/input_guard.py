@@ -13,6 +13,8 @@ _SPACES_RE = re.compile(r"[ \t]{2,}")
 _BLANK_LINES_RE = re.compile(r"\n{3,}")
 _PUNCTUATION_RE = re.compile(r"([!?！？。．…,.，])\1{2,}")
 _LINE_BREAK_RE = re.compile(r"\r\n?")
+_MAX_PUNCT_REPEAT = 2
+_MAX_IDENTICAL_LINES = 2
 # Match either 2+ contiguous CJK characters or identifier-like Latin tokens.
 _DETAIL_TOKEN_RE = re.compile(r"[\u4e00-\u9fff]{2,}|[A-Za-z0-9]+(?:[._/-][A-Za-z0-9]+)*")
 _STEP_MARKER_RE = re.compile(r"(?:^|[；;。]\s*|\s+)(?:\d+[\.:：]|[①②③④⑤⑥⑦⑧⑨⑩])\s*")
@@ -85,11 +87,11 @@ def _compress_plaintext(text: str, *, dedupe: bool) -> str:
             continue
 
         line = _SPACES_RE.sub(" ", line.strip())
-        line = _PUNCTUATION_RE.sub(lambda m: m.group(1) * 2, line)
+        line = _PUNCTUATION_RE.sub(lambda m: m.group(1) * _MAX_PUNCT_REPEAT, line)
 
         if dedupe and line == previous:
             repeat_count += 1
-            if repeat_count >= 2:
+            if repeat_count >= _MAX_IDENTICAL_LINES:
                 continue
         else:
             previous = line
@@ -170,10 +172,12 @@ def _compact_move_request(text: str) -> str | None:
     if not files:
         return None
 
-    files = re.sub(r"\s+", "", files).replace("、", ",").strip(",")
-    if not files:
+    files_without_spaces = re.sub(r"\s+", "", files)
+    files_with_ascii_separators = files_without_spaces.replace("、", ",")
+    normalized_files = files_with_ascii_separators.strip(",")
+    if not normalized_files:
         return None
-    return f"把{folders[0]}文件夹中的{files}文件移动到{folders[1]}文件夹"
+    return f"把{folders[0]}文件夹中的{normalized_files}文件移动到{folders[1]}文件夹"
 
 
 def _strip_filler(text: str) -> str:

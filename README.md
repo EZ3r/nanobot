@@ -223,6 +223,8 @@ Configure these **two parts** in your config (other options have defaults).
 
 `inputGuardMode` controls nanobot's lightweight local input handling before a model call:
 
+> JSON examples below use camelCase keys. nanobot also accepts snake_case keys such as `input_guard_mode`.
+
 - `off`: send raw user input as-is
 - `light`: only compress obvious whitespace / punctuation noise
 - `guide`: compress input, locally rewrite some verbose requests into a tighter task phrase, and ask for a clearer resend when the request is obviously vague
