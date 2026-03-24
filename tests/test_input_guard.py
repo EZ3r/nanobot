@@ -34,6 +34,26 @@ def test_preprocess_input_compresses_plaintext_but_preserves_code_blocks() -> No
     assert result.content == "Hello world!!\n\n```python\nx  =  1\n```\n\nNext step??"
 
 
+def test_preprocess_input_guide_compacts_weather_request() -> None:
+    result = preprocess_input(
+        "帮我查询一下今天的天气，哦对我在桂林市灵川县三街镇，顺便也查一下明天的天气吧",
+        mode="guide",
+    )
+
+    assert result.clarification_message is None
+    assert result.content == "查询桂林市灵川县三街镇今天和明天的天气"
+
+
+def test_preprocess_input_guide_compacts_step_by_step_file_move_request() -> None:
+    result = preprocess_input(
+        "我需要你帮我做以下的事情：1:打开A文件夹；2.选中其中的a,b文件；3. 将他们剪切; 4.退出A文件夹；5. 打开B文件夹; 6.粘贴a,b文件",
+        mode="guide",
+    )
+
+    assert result.clarification_message is None
+    assert result.content == "把A文件夹中的a,b文件移动到B文件夹"
+
+
 def test_preprocess_input_returns_local_clarification_for_vague_request() -> None:
     result = preprocess_input("帮我看下这个", mode="guide")
 
@@ -98,3 +118,23 @@ async def test_process_message_passes_compressed_text_into_context_builder(tmp_p
     assert result is not None
     loop.context.build_messages.assert_called_once()
     assert loop.context.build_messages.call_args.kwargs["current_message"] == "Hello world!!\n\nNext step??"
+
+
+@pytest.mark.asyncio
+async def test_process_message_passes_semantically_compacted_text_into_context_builder(tmp_path: Path) -> None:
+    loop = _make_loop(tmp_path, mode="guide")
+    loop.provider.chat_with_retry = AsyncMock(return_value=LLMResponse(content="ok"))
+    loop.context.build_messages = MagicMock(return_value=[])
+
+    result = await loop._process_message(
+        InboundMessage(
+            channel="cli",
+            sender_id="user",
+            chat_id="direct",
+            content="我需要你帮我做以下的事情：1:打开A文件夹；2.选中其中的a,b文件；3. 将他们剪切; 4.退出A文件夹；5. 打开B文件夹; 6.粘贴a,b文件",
+        )
+    )
+
+    assert result is not None
+    loop.context.build_messages.assert_called_once()
+    assert loop.context.build_messages.call_args.kwargs["current_message"] == "把A文件夹中的a,b文件移动到B文件夹"

@@ -225,8 +225,8 @@ Configure these **two parts** in your config (other options have defaults).
 
 - `off`: send raw user input as-is
 - `light`: only compress obvious whitespace / punctuation noise
-- `guide`: compress input and locally ask for a clearer resend when the request is obviously vague
-- `strict`: same as `guide`, but with a stricter ambiguity check
+- `guide`: compress input, locally rewrite some verbose requests into a tighter task phrase, and ask for a clearer resend when the request is obviously vague
+- `strict`: same as `guide`, but with stronger dedupe and a stricter ambiguity check
 
 **3. Chat**
 
