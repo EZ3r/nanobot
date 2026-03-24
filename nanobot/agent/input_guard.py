@@ -120,8 +120,8 @@ def _needs_clarification(text: str, *, strict: bool) -> bool:
         words = [part for part in re.split(r"\s+", lowered) if part]
         detail_tokens = _DETAIL_TOKEN_RE.findall(candidate)
         detail_chars = sum(len(token) for token in detail_tokens)
-        compact_chars = re.sub(r"\s+", "", candidate)
-        if len(compact_chars) <= 10:
+        compact_text = re.sub(r"\s+", "", candidate)
+        if len(compact_text) <= 10:
             return True
         if len(words) <= 3 and len(detail_tokens) <= 1 and detail_chars <= 12:
             return True
