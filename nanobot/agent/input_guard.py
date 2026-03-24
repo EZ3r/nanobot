@@ -13,6 +13,7 @@ _SPACES_RE = re.compile(r"[ \t]{2,}")
 _BLANK_LINES_RE = re.compile(r"\n{3,}")
 _PUNCTUATION_RE = re.compile(r"([!?！？。．…,.，])\1{2,}")
 _LINE_BREAK_RE = re.compile(r"\r\n?")
+# Match either 2+ contiguous CJK characters or identifier-like Latin tokens.
 _DETAIL_TOKEN_RE = re.compile(r"[\u4e00-\u9fff]{2,}|[A-Za-z0-9]+(?:[._/-][A-Za-z0-9]+)*")
 
 _VAGUE_PATTERNS = (
@@ -118,10 +119,11 @@ def _needs_clarification(text: str, *, strict: bool) -> bool:
     if strict:
         words = [part for part in re.split(r"\s+", lowered) if part]
         detail_tokens = _DETAIL_TOKEN_RE.findall(candidate)
+        detail_chars = sum(len(token) for token in detail_tokens)
         compact_chars = re.sub(r"\s+", "", candidate)
         if len(compact_chars) <= 10:
             return True
-        if len(words) <= 3 and len(detail_tokens) <= 1:
+        if len(words) <= 3 and len(detail_tokens) <= 1 and detail_chars <= 12:
             return True
 
     return False

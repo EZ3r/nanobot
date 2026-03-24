@@ -60,6 +60,12 @@ def test_preprocess_input_strict_keeps_structured_multistep_request() -> None:
     assert result.clarification_message is None
 
 
+def test_preprocess_input_strict_keeps_long_unpunctuated_chinese_request() -> None:
+    result = preprocess_input("请帮我把桌面上的月度报表移动到归档文件夹然后重命名为三月最终版", mode="strict")
+
+    assert result.clarification_message is None
+
+
 @pytest.mark.asyncio
 async def test_process_message_short_circuits_on_local_clarification(tmp_path: Path) -> None:
     loop = _make_loop(tmp_path, mode="guide")
