@@ -133,5 +133,5 @@ def _clarification_message(text: str) -> str:
         "1. Goal | Input/Context | Expected output\n"
         "2. Question | Constraints | What you've tried\n"
         "3. Decision to make | Options A/B/C | Success criteria\n\n"
-        "Tip: avoid messages that only say “this / that / optimize it / 看下这个”."
+        'Tip: avoid messages that only say "this / that / optimize it / 看下这个".'
     )
